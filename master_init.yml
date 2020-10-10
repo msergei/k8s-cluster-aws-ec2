@@ -1,0 +1,35 @@
+---
+- hosts: aws1
+
+  tasks:
+    - name: init k8s
+      raw: kubeadm init --pod-network-cidr=10.244.0.0/16 --control-plane-endpoint="{{ ansible_host }}":6443
+      register: init
+      become: true
+
+    - name: configuration
+      raw: mkdir -p $HOME/.kube && sudo cp -i /etc/kubernetes/admin.conf $HOME/.kube/config && sudo chown $(id -u):$(id -g) $HOME/.kube/config
+
+    - name: add flannel
+      raw: kubectl apply -f https://raw.githubusercontent.com/coreos/flannel/master/Documentation/kube-flannel.yml
+      register: flannel
+
+    - name: master node as worker
+      raw: kubectl taint nodes --all node-role.kubernetes.io/master-
+      register: masterwork
+
+    - name: get nodes
+      raw: kubectl get nodes
+      register: nodes
+
+    - name: get k8s sys pods
+      raw: kubectl get pods -n kube-system -o wide
+      register: kubesys
+
+    # You need to copy 'kubeadm join' with 'token and discovery-token-ca-cert-hash sha256 from:'
+    - debug: msg="{{ init.stdout }}"
+    # If you forget token/join command you can execute:
+    # kubeadm token create --print-join-command
+
+    - debug: msg="{{ nodes.stdout }}"
+    - debug: msg="{{ kubesys.stdout }}"

@@ -1,0 +1,89 @@
+---
+- hosts: aws1
+  become: true
+
+  tasks:
+    - name: update
+      yum:
+        name: '*'
+        state: latest
+
+    - name: copy k8s repo file
+      copy:
+        src: ./kubernetes.repo
+        dest: /etc/yum.repos.d/kubernetes.repo
+        owner: root
+        group: root
+        mode: u=rw,g=rw,o=r
+
+    - name: copy k8s conf
+      copy:
+        src: ./k8s.conf
+        dest: /etc/sysctl.d/k8s.conf
+        owner: root
+        group: root
+        mode: u=rw,g=rw,o=r
+
+    - name: copy containerd conf
+      copy:
+        src: ./containerd.conf
+        dest: /etc/modules-load.d/containerd.conf
+        owner: root
+        group: root
+        mode: u=rw,g=rw,o=r
+
+    - name: copy cri conf
+      copy:
+        src: ./cri.conf
+        dest: /etc/sysctl.d/99-kubernetes-cri.conf
+        owner: root
+        group: root
+        mode: u=rw,g=rw,o=r
+
+    - name: config network
+      yum:
+        name: tc, ipvsadm, docker
+        state: latest
+        skip_broken: yes
+
+    - name: Adding user "{{ ansible_user }}" to docker group
+      user:
+        name: "{{ ansible_user }}"
+        groups: docker
+        append: yes
+
+    - name: enabled docker
+      raw: systemctl enable docker
+
+    - name: start docker
+      service:
+        name: docker
+        state: started
+
+    - name: allow all connections
+      raw: iptables -P FORWARD ACCEPT && modprobe overlay && modprobe br_netfilter
+
+    - name: disable secure linux 1
+      raw: sysctl --system
+
+    - name: py selinux module install
+      yum:
+        name: libselinux-python
+        state: latest
+
+    - name: disable secure linux 2
+      selinux:
+        state: disabled
+
+    - name: k8s install
+      yum:
+        name: kubelet, kubeadm, kubectl
+        state: latest
+        disable_excludes: all
+
+    - name: enabled k8s
+      raw: systemctl enable kubelet
+
+    - name: reboot
+      reboot:
+        reboot_timeout: 300
