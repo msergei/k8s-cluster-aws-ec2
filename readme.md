@@ -27,11 +27,20 @@ ansible_user=ec2-user
 
 [aws1]
 192.168.0.1
+
+[aws2]
+192.168.0.2
 ```
-Where 
-- 192.168.0.1 and 192.168.0.2 are external ips;
-- aws and aws1 are names for ansible playbooks;
-- ec2-user is your EC2 machine user.
+    Where 
+    - 192.168.0.1 and 192.168.0.2 are external ips;
+    - aws and aws1 are names for ansible playbooks;
+    - ec2-user is your EC2 machine user.
+
+- Test connection and save fingerprint:
+```
+ansible aws1 -m ping
+ansible aws2 -m ping
+```
 
 ## Let's init the cluster
 

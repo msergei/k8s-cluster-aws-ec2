@@ -1,5 +1,5 @@
 ---
-- hosts: aws1
+- hosts: aws
   become: true
 
   tasks:
